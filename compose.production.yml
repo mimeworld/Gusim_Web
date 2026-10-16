@@ -1,0 +1,27 @@
+name: gusim-images
+services:
+  backend:
+    image: ghcr.io/${IMAGE_OWNER:?Set IMAGE_OWNER}/gusim-api:${IMAGE_TAG:?Set IMAGE_TAG}
+    env_file:
+      - ./config/database.env
+    environment:
+      SPRING_PROFILES_ACTIVE: db
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      BOOTSTRAP_ADMIN_NAME: ${BOOTSTRAP_ADMIN_NAME:-동아리 관리자}
+      BOOTSTRAP_ADMIN_STUDENT_NUMBER: ${BOOTSTRAP_ADMIN_STUDENT_NUMBER:?Set admin student number}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:?Set admin password}
+    volumes:
+      - uploads:/data/uploads
+    restart: unless-stopped
+  frontend:
+    image: ghcr.io/${IMAGE_OWNER:?Set IMAGE_OWNER}/gusim-web:${IMAGE_TAG:?Set IMAGE_TAG}
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+networks:
+  default:
+    name: gusim-web
+volumes:
+  uploads:

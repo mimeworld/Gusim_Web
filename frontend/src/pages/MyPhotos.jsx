@@ -1,2 +1,23 @@
-import {Camera,Image} from 'lucide-react';import {PageTitle} from '../components';import {useApp} from '../context';
-export default function MyPhotos(){const {posts,profile}=useApp();const mine=posts.filter(p=>p.author===profile.name);return <><PageTitle eyebrow="MY ARCHIVE" title="내가 올린 사진"/><main className="shell gallery-page">{mine.length?<div className="photo-grid">{mine.map(p=><article className="gallery-card" key={p.id}>{p.image?<img src={p.image} alt={p.title}/>:<div className="image-placeholder"><Camera/></div>}<div><span>{p.date}</span><h3>{p.title}</h3></div></article>)}</div>:<div className="empty"><Image size={34}/><h3>올린 사진이 없어요</h3><p>사진 공유에서 나만의 기록을 남겨보세요.</p></div>}</main></>}
+import { PageTitle } from "../components";
+import { useApp } from "../context";
+import PostCard from "../components/PostCard";
+export default function MyPhotos() {
+  const { posts, profile } = useApp();
+  const mine = posts.filter((post) => post.authorId === profile.id);
+  return (
+    <>
+      <PageTitle eyebrow="MY ARCHIVE" title="내가 올린 사진" />
+      <main className="shell page-body">
+        {mine.length ? (
+          <div className="photo-grid">
+            {mine.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))}
+          </div>
+        ) : (
+          <div className="empty">아직 올린 사진이 없습니다.</div>
+        )}
+      </main>
+    </>
+  );
+}

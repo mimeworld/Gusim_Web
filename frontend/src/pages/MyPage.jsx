@@ -1,2 +1,89 @@
-import {Camera,ChevronRight,UserRound} from 'lucide-react';import {Link} from 'react-router-dom';import {PageTitle} from '../components';import {useApp} from '../context';
-export default function MyPage(){const {profile,posts}=useApp();const makers=[...new Set(profile.equipment.map(x=>x.maker))];const myPosts=posts.filter(p=>p.author===profile.name);return <><PageTitle eyebrow="MY PAGE" title="마이페이지"/><main className="shell mypage"><aside className="profile"><div className="avatar"><UserRound size={48}/></div><h2>{profile.name}</h2><p>{profile.bio}</p>{makers.length?<div className="tags">{makers.map(m=><span key={m}>{m}</span>)}</div>:<p className="small">장비를 등록하면 제조사 태그가 표시됩니다.</p>}</aside><div className="my-content"><section><div className="section-head"><h2>내 정보</h2></div><p><b>이름</b>{profile.name}</p><p><b>소개</b>{profile.bio}</p></section><section><div className="section-head"><h2>내 카메라 장비</h2><Link to="/equipment">장비 관리 <ChevronRight size={16}/></Link></div>{profile.equipment.length?<div className="gear-grid">{profile.equipment.map(g=><div className="gear" key={g.id}><Camera size={20}/><span>{g.type}</span><strong>{g.maker} {g.model}</strong></div>)}</div>:<p className="muted">등록된 장비가 없습니다.</p>}</section><section><div className="section-head"><h2>내 사진</h2><Link to="/mypage/photos">내가 올린 사진 전체보기 <ChevronRight size={16}/></Link></div>{myPosts.length?<p>내가 작성한 게시글 {myPosts.length}개</p>:<p className="muted">아직 올린 사진 게시글이 없습니다.</p>}</section></div></main></>}
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { api, upload } from "../services/community";
+import { useApp } from "../context";
+import MemberProfileLayout from "../components/MemberProfileLayout";
+export default function MyPage() {
+  const { profile, logout, refreshProfile } = useApp();
+  const [photos, setPhotos] = useState([]),
+    [photosLoading, setPhotosLoading] = useState(true),
+    [error, setError] = useState(""),
+    [busy, setBusy] = useState(false);
+  useEffect(() => {
+    let active = true;
+    setPhotosLoading(true);
+    api(`/members/${profile.id}`)
+      .then((data) => {
+        if (active) setPhotos(data.photos);
+      })
+      .catch((e) => {
+        if (active) setError(e.message);
+      })
+      .finally(() => {
+        if (active) setPhotosLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [profile.id, profile.name, profile.avatar]);
+  async function avatar(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setBusy(true);
+    try {
+      const avatar = await upload(file);
+      await api("/me", {
+        method: "PUT",
+        body: JSON.stringify({ name: profile.name, bio: profile.bio, avatar }),
+      });
+      await refreshProfile();
+      setError("");
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <MemberProfileLayout
+      title="마이페이지"
+      member={profile}
+      photos={photos}
+      photosLoading={photosLoading}
+      error={error}
+      privateDetails={
+        <p className="text-sm text-slate-500">
+          {profile.role === "ADMIN" ? "관리자" : "일반 부원"} ·{" "}
+          {profile.studentNumber}
+        </p>
+      }
+      equipmentAction={
+        <Link className="text-button" to="/equipment">
+          장비 관리 →
+        </Link>
+      }
+      actions={
+        <div className="space-y-4">
+          <Link className="secondary" to="/mypage/password">
+            비밀번호 변경
+          </Link>
+          <label>
+            프로필 사진 변경
+            <input
+              type="file"
+              accept="image/jpeg,image/png"
+              onChange={avatar}
+              disabled={busy}
+            />
+          </label>
+          <button
+            className="secondary"
+            onClick={() => logout().catch((e) => setError(e.message))}
+          >
+            로그아웃
+          </button>
+        </div>
+      }
+    />
+  );
+}

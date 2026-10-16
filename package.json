@@ -1,9 +1,1 @@
-{
-  "name": "gudo-simdo",
-  "private": true,
-  "scripts": {
-    "dev": "npm --prefix frontend run dev",
-    "build": "npm --prefix frontend run build",
-    "server": "npm --prefix backend run dev"
-  }
-}
+{"name":"gudo-simdo","private":true,"scripts":{"dev":"npm --prefix frontend run dev","build":"npm --prefix frontend run build","server":"mvn -f backend/pom.xml spring-boot:run"}}

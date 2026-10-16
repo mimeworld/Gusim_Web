@@ -1,0 +1,24 @@
+spring:
+  config:
+    import: "optional:file:./config/database.env[.properties],optional:file:../config/database.env[.properties]"
+  profiles:
+    default: memory
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 101MB
+server:
+  port: ${PORT:8080}
+  servlet:
+    session:
+      timeout: 2h
+      cookie:
+        http-only: true
+        same-site: lax
+        secure: ${COOKIE_SECURE:false}
+app:
+  upload-dir: ${UPLOAD_DIR:./uploads}
+  bootstrap:
+    name: ${BOOTSTRAP_ADMIN_NAME:동아리 관리자}
+    student-number: ${BOOTSTRAP_ADMIN_STUDENT_NUMBER:}
+    password: ${BOOTSTRAP_ADMIN_PASSWORD:}

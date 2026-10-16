@@ -1,3 +1,67 @@
-import { createContext,useContext,useEffect,useState } from 'react';
-const AppContext=createContext(); export const useApp=()=>useContext(AppContext); const defaultProfile={name:'사진을 사랑하는 구심인',bio:'빛과 순간을 기록합니다.',equipment:[]};
-export function Provider({children}){const [loggedIn,setLoggedIn]=useState(()=>localStorage.getItem('gs-auth')==='true');const [profile,setProfile]=useState(()=>JSON.parse(localStorage.getItem('gs-profile')||'null')||defaultProfile);const [posts,setPosts]=useState(()=>JSON.parse(localStorage.getItem('gs-posts')||'[]'));useEffect(()=>localStorage.setItem('gs-auth',loggedIn),[loggedIn]);useEffect(()=>localStorage.setItem('gs-profile',JSON.stringify(profile)),[profile]);useEffect(()=>localStorage.setItem('gs-posts',JSON.stringify(posts)),[posts]);return <AppContext.Provider value={{loggedIn,setLoggedIn,profile,setProfile,posts,setPosts}}>{children}</AppContext.Provider>}
+import { createContext, useContext, useEffect, useState } from "react";
+import { api, resetCsrf } from "./services/community";
+const AppContext = createContext();
+export const useApp = () => useContext(AppContext);
+export function Provider({ children }) {
+  const [profile, setProfile] = useState(null),
+    [posts, setPosts] = useState([]),
+    [loading, setLoading] = useState(true),
+    [error, setError] = useState("");
+  useEffect(() => {
+    const expired = () => {
+      setProfile(null);
+      resetCsrf();
+    };
+    window.addEventListener("session-expired", expired);
+    return () => window.removeEventListener("session-expired", expired);
+  }, []);
+  const refreshPosts = () => api("/posts").then(setPosts);
+  const refreshProfile = (silent = false) =>
+    api("/me", { silent }).then(setProfile);
+  useEffect(() => {
+    Promise.all([
+      refreshProfile(true).catch((e) => {
+        if (e.status !== 401) setError(e.message);
+      }),
+      refreshPosts().catch((e) => setError(e.message)),
+    ]).finally(() => setLoading(false));
+  }, []);
+  const login = async (data) => {
+    setProfile(
+      await api("/auth/login", { method: "POST", body: JSON.stringify(data) }),
+    );
+    setError("");
+  };
+  const clearSession = () => {
+    resetCsrf();
+    setProfile(null);
+  };
+  const logout = async () => {
+    await api("/auth/logout", { method: "POST" });
+    resetCsrf();
+    setProfile(null);
+  };
+  return (
+    <AppContext.Provider
+      value={{
+        profile,
+        posts,
+        loading,
+        error,
+        loggedIn: !!profile,
+        login,
+        logout,
+        clearSession,
+        refreshPosts,
+        refreshProfile,
+      }}
+    >
+      {error && (
+        <p role="alert" className="alert">
+          {error}
+        </p>
+      )}
+      {children}
+    </AppContext.Provider>
+  );
+}
